@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Finding No-No-Namosh II: The Lost Star</title>
+<style>
+  :root{
+    --bg:#0c1220;
+    --panel:#16223a;
+    --panel-light:#22314f;
+    --accent:#ffcf5c;
+    --accent2:#6fe3c9;
+    --text:#f2f1ea;
+    --text-dim:#b9c2d6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#000; overflow:hidden;
+    font-family:'Courier New', monospace;
+    touch-action:none;
+  }
+  #gameRoot{
+    position:relative; width:100vw; height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    background:#000;
+  }
+  #gameCanvas{
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+    background:#000;
+    max-width:100vw; max-height:100vh;
+    display:block;
+  }
+  #uiLayer{
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    pointer-events:none;
+  }
+  .ui-btn{
+    pointer-events:auto;
+    background:var(--panel);
+    border:2px solid var(--accent);
+    color:var(--text);
+    font-family:inherit;
+    padding:10px 18px;
+    font-size:14px;
+    cursor:pointer;
+    border-radius:6px;
+    letter-spacing:1px;
+  }
+  .ui-btn:active{ background:var(--panel-light); }
+  .ui-btn.small{padding:6px 10px; font-size:12px;}
+
+  /* ---- Menus ---- */
+  .menu-screen{
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center, #1a2740 0%, #060a14 100%);
+    pointer-events:auto;
+    color:var(--text);
+    text-align:center;
+    padding:20px;
+  }
+  .menu-screen.active{display:flex;}
+  .title-main{
+    font-size:clamp(22px,5vw,40px);
+    color:var(--accent);
+    text-shadow: 3px 3px 0 #402a00;
+    letter-spacing:2px;
+    margin-bottom:4px;
+  }
+  .title-sub{
+    font-size:clamp(14px,3vw,20px);
+    color:var(--accent2);
+    margin-bottom:30px;
+    letter-spacing:3px;
+  }
+  .menu-list{ display:flex; flex-direction:column; gap:12px; width:min(320px,80vw); }
+  .menu-list .ui-btn{ width:100%; }
+  .lang-row{ display:flex; gap:12px; margin-top:22px; }
+  .save-slot{
+    background:var(--panel); border:2px solid var(--panel-light);
+    border-radius:6px; padding:12px; width:min(360px,85vw);
+    text-align:left; cursor:pointer; color:var(--text);
+  }
+  .save-slot:hover{ border-color:var(--accent); }
+  .save-slot .slot-title{ color:var(--accent); font-size:13px; }
+  .save-slot .slot-info{ color:var(--text-dim); font-size:11px; margin-top:4px; }
+
+  /* ---- HUD ---- */
+  #hud{
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    pointer-events:none; display:none;
+  }
+  #hud.active{display:block;}
+  #hearts{ position:absolute; top:10px; left:10px; display:flex; gap:4px; }
+  .heart{ width:18px; height:18px; }
+  #objectiveBar{
+    position:absolute; top:10px; right:10px;
+    background:rgba(10,15,25,0.75); border:1px solid var(--accent);
+    color:var(--text); padding:6px 10px; font-size:11px; max-width:46%;
+    border-radius:4px;
+  }
+  #objectiveBar b{ color:var(--accent); }
+  #invBtn, #menuBtn{
+    position:absolute; right:10px; pointer-events:auto;
+  }
+  #invBtn{ bottom:10px; }
+  #menuBtn{ bottom:56px; }
+
+  /* Touch controls */
+  #touchControls{ display:none; }
+  #touchControls.active{ display:block; }
+  #dpad{
+    position:absolute; left:16px; bottom:16px; width:130px; height:130px;
+    pointer-events:auto;
+  }
+  #dpad .zone{
+    position:absolute; width:44px; height:44px;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25);
+    border-radius:8px;
+  }
+  #dpad .zone.active{ background:rgba(255,207,92,0.35); }
+  #zUp{ left:43px; top:0; } #zDown{ left:43px; top:86px; }
+  #zLeft{ left:0; top:43px; } #zRight{ left:86px; top:43px; }
+  #actionBtns{
+    position:absolute; right:16px; bottom:16px; pointer-events:auto;
+    display:flex; flex-direction:column; gap:10px; align-items:flex-end;
+  }
+  .round-btn{
+    width:58px; height:58px; border-radius:50%;
+    background:rgba(255,207,92,0.85); border:2px solid #a87a00;
+    color:#1a1200; font-weight:bold; font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+    pointer-events:auto;
+  }
+  .round-btn.secondary{ background:rgba(111,227,201,0.85); border-color:#0d6b58; width:46px; height:46px; font-size:11px;}
+
+  /* Dialogue box */
+  #dialogueBox{
+    position:absolute; left:4%; right:4%; bottom:4%;
+    background:var(--panel); border:3px solid var(--accent);
+    border-radius:10px; padding:14px 16px; display:none;
+    pointer-events:auto; color:var(--text);
+  }
+  #dialogueBox.active{ display:flex; gap:14px; align-items:flex-start; }
+  #portraitBox{
+    width:64px; height:64px; flex-shrink:0; border:2px solid var(--accent2);
+    border-radius:6px; background:#0c1425; overflow:hidden;
+  }
+  #portraitCanvas{ width:100%; height:100%; image-rendering:pixelated; }
+  #dialogueTextWrap{ flex:1; min-width:0; }
+  #speakerName{ color:var(--accent); font-size:12px; margin-bottom:4px; letter-spacing:1px; }
+  #dialogueText{ font-size:13px; line-height:1.5; min-height:2.6em; }
+  #dialogueNext{ text-align:right; font-size:10px; color:var(--text-dim); margin-top:6px; }
+
+  /* Inventory panel */
+  #invPanel{
+    position:absolute; left:6%; right:6%; top:8%; bottom:8%;
+    background:var(--panel); border:3px solid var(--accent2);
+    border-radius:10px; padding:16px; display:none; pointer-events:auto;
+    overflow-y:auto; color:var(--text);
+  }
+  #invPanel.active{ display:block; }
+  #invPanel h2{ color:var(--accent2); margin-top:0; font-size:16px; }
+  #invGrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(70px,1fr)); gap:8px; margin-top:10px;}
+  .inv-item{ background:var(--panel-light); border-radius:6px; padding:8px; text-align:center; font-size:10px; }
+  .inv-item .ic{ font-size:22px; }
+
+  /* toast */
+  #toast{
+    position:absolute; top:14%; left:50%; transform:translateX(-50%);
+    background:rgba(15,20,35,0.9); border:1px solid var(--accent);
+    color:var(--accent); padding:8px 16px; border-radius:6px; font-size:12px;
+    opacity:0; transition:opacity .3s; pointer-events:none; white-space:nowrap;
+  }
+  #toast.show{ opacity:1; }
+
+  #skipHint{
+    position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    font-size:10px; color:var(--text-dim); background:rgba(0,0,0,0.4);
+    padding:3px 8px; border-radius:4px; pointer-events:none;
+  }
+</style>
+</head>
+<body>
+<div id="gameRoot">
+  <canvas id="gameCanvas" width="480" height="270"></canvas>
+
+  <div id="uiLayer">
+    <!-- TITLE -->
+    <div class="menu-screen active" id="screenTitle">
+      <div class="title-main" id="txtTitleMain">FINDING NO-NO-NAMOSH II</div>
+      <div class="title-sub" id="txtTitleSub">THE LOST STAR</div>
+      <div class="menu-list">
+        <button class="ui-btn" id="btnNewGame">NEW GAME</button>
+        <button class="ui-btn" id="btnContinue">CONTINUE</button>
+        <button class="ui-btn" id="btnOptions">OPTIONS</button>
+      </div>
+      <div class="lang-row">
+        <button class="ui-btn small" id="btnLangEN">ENGLISH</button>
+        <button class="ui-btn small" id="btnLangSV">SVENSKA</button>
+      </div>
+    </div>
+
+    <!-- SAVE SLOTS -->
+    <div class="menu-screen" id="screenSlots">
+      <div class="title-sub" id="txtSelectSlot">SELECT SAVE SLOT</div>
+      <div class="menu-list" id="slotList"></div>
+      <button class="ui-btn small" id="btnSlotsBack" style="margin-top:20px;">BACK</button>
+    </div>
+
+    <!-- OPTIONS -->
+    <div class="menu-screen" id="screenOptions">
+      <div class="title-sub" id="txtOptions">OPTIONS</div>
+      <div class="menu-list">
+        <div style="text-align:left;color:var(--text-dim);font-size:11px;line-height:1.8;">
+          <div id="optMusicLbl">MUSIC VOLUME</div>
+          <input type="range" id="musicVol" min="0" max="100" value="60" style="width:100%">
+          <div id="optSfxLbl" style="margin-top:10px;">SFX VOLUME</div>
+          <input type="range" id="sfxVol" min="0" max="100" value="70" style="width:100%">
+          <div style="margin-top:14px;" id="optControlsLbl">
+            Desktop: WASD/Arrows move · E interact · B ability · I inventory<br>
+            Mobile: on-screen D-pad and buttons
+          </div>
+        </div>
+      </div>
+      <button class="ui-btn small" id="btnOptionsBack" style="margin-top:20px;">BACK</button>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hearts"></div>
+      <div id="objectiveBar"><b id="objLabel">OBJECTIVE</b><div id="objText"></div></div>
+      <button class="ui-btn small" id="invBtn">🎒</button>
+      <button class="ui-btn small" id="menuBtn">☰</button>
+      <div id="skipHint"></div>
+
+      <div id="touchControls">
+        <div id="dpad">
+          <div class="zone" id="zUp">▲</div>
+          <div class="zone" id="zDown">▼</div>
+          <div class="zone" id="zLeft">◀</div>
+          <div class="zone" id="zRight">▶</div>
+        </div>
+        <div id="actionBtns">
+          <div class="round-btn secondary" id="btnAbility">B</div>
+          <div class="round-btn" id="btnInteract">E</div>
+        </div>
+      </div>
+
+      <div id="dialogueBox">
+        <div id="portraitBox"><canvas id="portraitCanvas" width="32" height="32"></canvas></div>
+        <div id="dialogueTextWrap">
+          <div id="speakerName"></div>
+          <div id="dialogueText"></div>
+          <div id="dialogueNext" id="txtTapContinue">▼ tap / space</div>
+        </div>
+      </div>
+
+      <div id="invPanel">
+        <h2 id="invTitle">SATCHEL</h2>
+        <div id="invGrid"></div>
+        <button class="ui-btn small" id="invCloseBtn" style="margin-top:14px;">CLOSE</button>
+      </div>
+
+      <div id="toast"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   FINDING NO-NO-NAMOSH II: THE LOST STAR
+   Chapter-1 vertical slice engine.
+   Single-file, no dependencies, GitHub-Pages ready.
+   ========================================================= */
+
+/* ---------------- CORE SETUP ---------------- */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const VW = canvas.width, VH = canvas.height;
+const TILE = 16;
+
+function fitCanvas(){
+  const scale = Math.min(window.innerWidth / VW, window.innerHeight / VH);
+  canvas.style.width = (VW*scale)+"px";
+  canvas.style.height = (VH*scale)+"px";
+}
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+if(isTouch){ document.getElementById('touchControls').classList.add('active'); }
+
+/* ---------------- AUDIO (procedural, original, no external files) ---------------- */
+const AudioSys = (function(){
+  let actx=null, musicGain=null, sfxGain=null, currentMusic=null;
+  let musicVol=0.6, sfxVol=0.7;
+  function ensure(){
+    if(!actx){
+      actx = new (window.AudioContext||window.webkitAudioContext)();
+      musicGain = actx.createGain(); musicGain.gain.value = musicVol; musicGain.connect(actx.destination);
+      sfxGain = actx.createGain(); sfxGain.gain.value = sfxVol; sfxGain.connect(actx.destination);
+    }
+  }
+  function setMusicVol(v){ musicVol=v; if(musicGain) musicGain.gain.value=v; }
+  function setSfxVol(v){ sfxVol=v; if(sfxGain) sfxGain.gain.value=v; }
+
+  // simple original chiptune sequencer: array of [freq or 0, durationBeats]
+  function playSfx(freqs, dur=0.08, type='square', vol=0.18){
+    ensure();
+    let t = actx.currentTime;
+    freqs.forEach((f,i)=>{
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t + i*dur);
+      g.gain.linearRampToValueAtTime(vol, t + i*dur + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i*dur + dur);
+      o.connect(g); g.connect(sfxGain);
+      o.start(t + i*dur); o.stop(t + i*dur + dur + 0.02);
+    });
+  }
+  const SFX = {
+    step: ()=>playSfx([220],0.03,'square',0.05),
+    interact: ()=>playSfx([440,660],0.05,'square',0.12),
+    pickup: ()=>playSfx([523,659,784],0.07,'triangle',0.15),
+    quest: ()=>playSfx([392,523,659,784],0.09,'triangle',0.16),
+    splash: ()=>playSfx([180,140],0.06,'sine',0.15),
+    meow: ()=>playSfx([700,900,600],0.05,'sawtooth',0.1),
+    hit: ()=>playSfx([120,80],0.06,'square',0.2),
+    bossHit: ()=>playSfx([300,200,100],0.09,'sawtooth',0.22),
+    door: ()=>playSfx([260,330],0.06,'triangle',0.12),
+    save: ()=>playSfx([523,659,784,1046],0.08,'triangle',0.15),
+  };
+
+  // Original looping ambient chiptune themes built from note sequences.
+  let musicTimer=null, musicSeqIdx=0, musicSeq=[], musicNoteDur=0.28, musicOscType='triangle';
+  function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
+  function playMusic(seq, noteDur, type){
+    ensure(); stopMusic();
+    musicSeq = seq; musicNoteDur = noteDur; musicOscType = type; musicSeqIdx=0;
+    musicTimer = setInterval(step, noteDur*1000);
+    step();
+  }
+  function step(){
+    if(!musicSeq.length) return;
+    const note = musicSeq[musicSeqIdx % musicSeq.length];
+    musicSeqIdx++;
+    if(note>0){
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = musicOscType; o.frequency.value = note;
+      const t = actx.currentTime;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.09,t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, t+musicNoteDur*0.95);
+      o.connect(g); g.connect(musicGain);
+      o.start(t); o.stop(t+musicNoteDur);
+    }
+  }
+  // Themes (simple original melodic loops, not from any copyrighted source)
+  const THEMES = {
+    apartment: [392,0,440,0,523,0,440,392, 349,0,392,0,440,0,392,0],
+    rosewood:  [440,494,523,587,523,494,440,0, 392,440,494,440,392,0,349,0],
+    greenhaven:[523,587,659,587,523,494,440,0, 494,523,587,659,587,523,494,0],
+    grotto:    [349,392,349,330,294,330,349,0, 262,294,330,294,262,0,247,0],
+    battle:    [220,220,247,220,196,220,247,262, 220,220,247,220,262,247,220,0],
+  };
+  function playTheme(name){ const t=THEMES[name]||THEMES.rosewood; playMusic(t, name==='battle'?0.16:0.3, name==='grotto'?'sine':'triangle'); }
+
+  return { ensure, setMusicVol, setSfxVol, SFX, playTheme, stopMusic };
+})();
+
+/* ---------------- LOCALIZATION ---------------- */
+let LANG = 'en';
+const STR = {
+en:{
+  titleMain:"FINDING NO-NO-NAMOSH II", titleSub:"THE LOST STAR",
+  newGame:"NEW GAME", cont:"CONTINUE", options:"OPTIONS",
+  selectSlot:"SELECT SAVE SLOT", back:"BACK", empty:"— empty —",
+  musicVol:"MUSIC VOLUME", sfxVol:"SFX VOLUME",
+  controlsInfo:"Desktop: WASD/Arrows move · E interact · B ability · I inventory<br>Mobile: on-screen D-pad and buttons",
+  satchel:"SATCHEL", close:"CLOSE", tapContinue:"▼ tap / space",
+  objective:"OBJECTIVE", saved:"Game saved.",
+  obj_intro:"Look around the apartment.",
+  obj_findKitten:"Count the kittens.",
+  obj_followTracks:"Follow the wet paw prints.",
+  obj_rosewood:"Find Namosh's trail through Rosewood.",
+  obj_greenhaven:"Follow the tracks into Greenhaven Valley.",
+  obj_grottoEnter:"Something scratched open the old grotto gate. Go in.",
+  obj_grottoPuzzle:"Raise the water to reach the upper ledge.",
+  obj_grottoBoss:"The Grotto Guardian blocks the way. Dodge and strike back!",
+  obj_chapterEnd:"End of Chapter 1 demo. More regions are on the way.",
+  itemName_key:"Old Grotto Key", itemName_shell:"Lucky Shell", itemName_fish:"Dried Fish",
+  itemName_crystal:"Cooling Crystal Shard",
+  toast_gotItem:"Got: {item}",
+},
+sv:{
+  titleMain:"FINNA NO-NO-NAMOSH II", titleSub:"DEN FÖRLORADE STJÄRNAN",
+  newGame:"NYTT SPEL", cont:"FORTSÄTT", options:"INSTÄLLNINGAR",
+  selectSlot:"VÄLJ SPARPLATS", back:"TILLBAKA", empty:"— tom —",
+  musicVol:"MUSIKVOLYM", sfxVol:"LJUDVOLYM",
+  controlsInfo:"Dator: WASD/Piltangenter rör sig · E interagera · B förmåga · I väska<br>Mobil: skärmens styrspak och knappar",
+  satchel:"VÄSKAN", close:"STÄNG", tapContinue:"▼ tryck / mellanslag",
+  objective:"MÅL", saved:"Spelet sparat.",
+  obj_intro:"Titta dig omkring i lägenheten.",
+  obj_findKitten:"Räkna kattungarna.",
+  obj_followTracks:"Följ de våta tassavtrycken.",
+  obj_rosewood:"Hitta Namoshs spår genom Rosewood.",
+  obj_greenhaven:"Följ spåren in i Greenhaven-dalen.",
+  obj_grottoEnter:"Något har rivit upp den gamla grottporten. Gå in.",
+  obj_grottoPuzzle:"Höj vattnet för att nå den övre avsatsen.",
+  obj_grottoBoss:"Grottväktaren blockerar vägen. Undvik och slå tillbaka!",
+  obj_chapterEnd:"Slutet på kapitel 1-demot. Fler områden är på väg.",
+  itemName_key:"Gammal Grottnyckel", itemName_shell:"Lyckoskal", itemName_fish:"Torkad Fisk",
+  itemName_crystal:"Kylkristallskärva",
+  toast_gotItem:"Fick: {item}",
+},
+};
+function T(key){ return (STR[LANG] && STR[LANG][key]) || (STR.en[key]) || key; }
+
+/* Dialogue script data (bilingual) lives per-scene below. */
+
+/* ---------------- SAVE SYSTEM ---------------- */
+const SAVE_PREFIX = "nonamosh2_slot_";
+function saveGame(slot){
+  const data = {
+    v:1, lang:LANG, scene: Game.currentSceneName,
+    player: {x:Game.player.x, y:Game.player.y},
+    flags: Game.flags, inventory: Game.inventory,
+    timestamp: Date.now(),
+  };
+  try{ localStorage.setItem(SAVE_PREFIX+slot, JSON.stringify(data)); AudioSys.SFX.save(); showToast(T('saved')); }
+  catch(e){ console.warn("save failed", e); }
+}
+function loadGame(slot){
+  try{
+    const raw = localStorage.getItem(SAVE_PREFIX+slot);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch(e){ return null; }
+}
+function slotSummary(slot){
+  const d = loadGame(slot);
+  if(!d) return null;
+  const date = new Date(d.timestamp);
+  return { scene:d.scene, date: date.toLocaleString() };
+}
+
+/* ---------------- INPUT ---------------- */
+const Keys = {};
+window.addEventListener('keydown', e=>{
+  Keys[e.key.toLowerCase()] = true;
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase())) e.preventDefault();
+  if(e.key.toLowerCase()==='e') Input.interactPressed = true;
+  if(e.key.toLowerCase()==='b') Input.abilityPressed = true;
+  if(e.key.toLowerCase()==='i') toggleInventory();
+  if(e.key===' ') Input.confirmPressed = true;
+});
+window.addEventListener('keyup', e=>{ Keys[e.key.toLowerCase()] = false; });
+
+const Input = { up:false,down:false,left:false,right:false, interactPressed:false, abilityPressed:false, confirmPressed:false };
+function pollKeyboard(){
+  Input.up = Keys['w']||Keys['arrowup'];
+  Input.down = Keys['s']||Keys['arrowdown'];
+  Input.left = Keys['a']||Keys['arrowleft'];
+  Input.right = Keys['d']||Keys['arrowright'];
+}
+
+// touch dpad
+function bindZone(el, dir){
+  const set = (v)=>{ Input[dir]=v; el.classList.toggle('active',v); };
+  el.addEventListener('touchstart', e=>{ e.preventDefault(); set(true); }, {passive:false});
+  el.addEventListener('touchend', e=>{ e.preventDefault(); set(false); }, {passive:false});
+  el.addEventListener('touchcancel', ()=> set(false));
+}
+bindZone(document.getElementById('zUp'),'up');
+bindZone(document.getElementById('zDown'),'down');
+bindZone(document.getElementById('zLeft'),'left');
+bindZone(document.getElementById('zRight'),'right');
+document.getElementById('btnInteract').addEventListener('touchstart', e=>{ e.preventDefault(); Input.interactPressed=true; Input.confirmPressed=true; });
+document.getElementById('btnAbility').addEventListener('touchstart', e=>{ e.preventDefault(); Input.abilityPressed=true; });
+
+/* ---------------- SPRITE ASSETS (hand-authored pixel art, embedded as base64
+   so the game has zero external file dependencies and can never silently
+   fail to find assets/ when opened as a standalone file) ---------------- */
+const SPRITE_DATA_URIS = {
+  aya: "data:image/png;base64,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",
+  namosh: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANgAAACQCAYAAABqK6XsAAAEk0lEQVR4nO3doY7cVhQG4Gy1KqiioqBFiwqigMKqIHhhHiOP0EfpYwQGF1QFhVFA0CogKKiKCkpaMNLUo5mbuXfs33PvzPehUeJd+1/r6Fi2556bJwXPvv/u39L/HfP5r79vWra3L/u61H19c+ovBI5TYBC009Z2WuS3T0//rf982X4stU77sq9r2JcOBkEKDIIUGAQpMAhSYBB0m97BnId3PZNrLOfKpYNBkAKDoMwl4pwHdj2Taywd5NLBIEiBQVDxdf7F3tFKqHjHrESuM7jiXDoYBCkwCIrcRXz35vn284tX70/epjdyfX2b3vSQSweDIAUGQbMuER8fPxzd5s9f3h7896c/Pkx+z+Gfvb//4ZTDmk2ufXKdRgeDIAUGQfmvq7x+OL7RgOQay7ly6WAQpMAgSIFBkAKDIAUGQQoMghQYBCkwCKr6dmlpTbnHT5+O/uz93V3jIR3X+q3YksRaeXP+Julczte+9PnSwSBIgUFQ3aI3jXqYjWtf9tXDvnQwCFJgEGRGs33ZV3BfOhgEKTAIUmAQpMAgSIFBkBnNJ5JrLGY0wwVSYBBkRnMLucbSQS4dDIIUGASZ0dwTufaMnksHgyAFBkEKDIIUGAQpMAiKz2ieo+eZv3PItayec+lgEKTAIEiBQZACgyAFBkEKDIIUGAQpMAhSYBCkwCBIgUGQGc0LM6N53zWfLx0MghQYBN1ULSoyWdxjR8X2S10elEyPf7ovuQ6QK6aUSweDIAUGQXWXiHME2nTxmFsvIeaQq9o159LBIEiBQVB8AN9UfAhazeVHgFwnuoJcOhgEKTAIqrpEfPfm+fbzi1fv2/aw5kSMxssMuQ6Qaz53EWEdCgyCdh40T1/d//zr2+3nZ68fmn7pqksoFx4gylVPrgUUculgEKTAIKh4F7G1HY9CrrGMnksHgyAFBkHxdxETw9HONehtSq5615xLB4MgBQZBkUvE9Mzcc5FrLD3k0sEgSIFB0O30van7u7umb3r+9sfvyx9RjYoFTOTaJ9fCKnLpYBCkwCCoeX241iWOa6ZXTBUf3oWXQZZrQ66NpXLpYBCkwCBo1XURa5QeDiYGw/V8DKPo4W/VwzGU6GAQpMAgaNZdxNKdmZrW3Pqz6QFqUzVLK7cef8326bttzte+9PnSwSBIgUHQTosrzZlNWHMmr1zzyXVAxfY6GAQpMAgqz2hec6btUmpauVzV5DqRS0RYhwKDoNuaFhmfaZsg11guNJcOBkEKDILKdxE7UzWft/WBYAfkOuCCculgEKTAIKj4LuKabbp1iePS3N7SVwnkWpZcGzW5dDAIUmAQ1N2iNzVGn9tbItdYanLpYBCkwCCo6hLR3N56cuWMmEsHgyAFBkFnu4vYw/zcBLnGks6lg0GQAoOgnUvE3ffBnmzfB/v48XHFQ/rfy59+btq+Zv6vXDlybUyPXweDIAUGQVXrzNV8faD1bszOVIvGpZWXIlc9uTZac+lgEKTAIKj5QfOlPnBM6GF2sPNVL3G+dDAIUmAQNGtG81R6/m9v84vn5O1hfrHz9fXtp+Zk0cEgSIFB0H+PssQG69PUbgAAAABJRU5ErkJggg==",
+  tiles: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAFVElEQVR4nO3dMYtcVRgG4IxsJSphCcsWi26hzWLhD9BGxEJSiZVpUocgKfwNYikS8g8EK6s1ldgYBC0sgqTQFFG2GJawBAkB06zd7oTNde/k3jvnnHmfpxrI7OQU+/K9nHPu7OzT768eX2jY03+fll7CIHd/vVZ6CdFeKr0AKEkAiCYARBMAogkA0Ta6/mH+1/zk9fYb2ytZDKyaCUA0ASBaZwWaovaoVWd9fPnN0ksY5Lv9+6WXMIgJQDQBIFpnBepj2UpTqvYczY9OXm9ubxZZQ5fWK0TrTACiCQDRBlWgVnZypqg9NdeqVWp9F8sEIJoAEG1QBZpCqcOyZStNcu1Z1PoulglANAEg2mgVaKzqUmpnSaXJZAIQTQCINloFauVQbJUcltXPBCCaABCtVwVKe5JrrOrS52dbv0vjIAwaJgBE61WBpq49tVWsVe7YtF4hWmcCEE0AiDbJdeiaH5Z3ODWu1nexTACiCQDRJqlANezkdJm69qRVrNZ3sUwAogkA0Z6pQLUdSC3ysDxTMAGIJgBEe6YC1VZ7FnlYnimYAEQTAKJV99WIY6n5QGpxbZRlAhBNAIg2u/PtjePSixjixpe/jf6ZW5dOd5wOH87/553DP/+dzdO7NDtbF8/92YPDR1W9/6Orn5z7npqZAEQTAKI1vwu0WCda/HzKMgGIJgBEW2kFOvj7dEdl53XVgmkdzk9/37a2n//7ZgIQTQCI1lmBpqgrag+r1FV7FpkARBMAonVWoHWtK1Pf7Vn68+u6qT2JPrsxpZgARBMAolV9F2iKnaj67g61/dWCfdRWexaZAEQTAKJVXYHWdSeKepgARBMAolVdgaDLWIdrJgDRBIBogypQDU94VXe3Z8nP58WMdbhmAhBNAIg2qALVcFBV392eXDVfe+5iAhBNAIhW3UFYDTtLvJhWas8iE4BoAkC06iqQ2pOp1A6SCUA0ASBadRVoatXdHQr4XqA+Su0gmQBEEwCi9apA63Q4Vd/dofX/XqCamQBEEwCi9apArdce6GICEE0AiCYARBMAogkA0WYf3vvluPQikj3+/ErpJQzy8+37s9JrGMIEIJoAEC3uOjSrcf3y28+t1jf3fx+9Mg35v0wAogkA0TY+232r9BoG+frBn6WXMIlL26+cvH44f1xwJevNBCCaABBtY10rROvUntUwAYgmAERr/iCs9V2sL0ovYES3rr9/ciB178Hhue8Zy7L/17WbP54ckJkARBMAojVfgexi9edw7SwTgGgCQLTmKxD9qT1nmQBEEwCizfafHDX9UHzru0Dr+lC8J8KgAQJANNehiWYCEE0AiNb8QZjr0AxhAhBNAIjWfAVK3sWq7XqzJ8KgMQJAtOYrULIaak/rTACiCQDRfDs00UwAogkA0fyZ1MJqeyJs2cM1T4RBwwSAaM0fhLW+i1Xbdei0wzUTgGgCQLTmK5CDMIYwAYgmAESb3drba/og7KuN3dJLGOSPu7dHPxhapVc3d5v+/TEBiCYARGt+FyjBu3vbRWrGnXvzputZHyYA0QSAaJ0VaGfz5VWu41wHR09KL+HCaxc3T17/8+io4EoYiwlANAEg2truAk1RV2qrPT9988Eon/PelR9G+ZwWmQBEEwCiLV2Bpt6NGWv3qba6Qp1MAKIJANEEgGgCQDQBIJoAEE0AiCYARBMAogkA0QSAaGt7HboPT3hhAhBNAIgWXYHUHkwAogkA0aIr0BTsLLXFBCCaABBNBRqZ2tMWE4BoAkC0pStQbd8aDUOYAEQTAKIJANEEgGgCQLTOXaAa/iYXTM0EIJoAEE0AiCYARBMAov0Hci9M0GgcLrIAAAAASUVORK5CYII=",
+};
+const Sprites = { aya:null, namosh:null, tiles:null, ok:{aya:false,namosh:false,tiles:false} };
+function loadSprite(key){
+  const img = new Image();
+  img.onload = ()=>{ Sprites.ok[key] = true; };
+  img.onerror = ()=>{ Sprites.ok[key] = false; console.warn('sprite failed to decode:', key); };
+  img.src = SPRITE_DATA_URIS[key];
+  Sprites[key] = img;
+}
+loadSprite('aya'); loadSprite('namosh'); loadSprite('tiles');
+const AYA_FW=42, AYA_FH=60, NAMOSH_FW=54, NAMOSH_FH=36, TILE_SRC=48;
+const DIR_ROW = {down:0, up:1, left:2, right:3};
+const TILE_INDEX = {
+  '.':0, '#':5, '~':2, '=':4, 'F':11, 'S':7, 'W':6, 'R':12,
+  'B':13, 'C':8, 'G':10, ' ':15, '3':14,
+};
+function spriteReady(){ return Sprites.ok.aya && Sprites.ok.namosh && Sprites.ok.tiles; }
+
+/* ---------------- PORTRAITS (procedural pixel-art faces) ---------------- */
+const portraitCanvas = document.getElementById('portraitCanvas');
+const pctx = portraitCanvas.getContext('2d');
+pctx.imageSmoothingEnabled=false;
+function drawPortrait(name, expr){
+  pctx.clearRect(0,0,32,32);
+  const P = PORTRAITS[name] || PORTRAITS.aya;
+  P(pctx, expr||'neutral');
+}
+function px(c,x,y,w,h,col){ c.fillStyle=col; c.fillRect(x,y,w,h); }
+const PORTRAITS = {
+  aya:(c,expr)=>{
+    px(c,0,0,32,32,'#f4e3c8'); // bg
+    px(c,8,6,16,16,'#f6d9b8'); // face
+    px(c,7,4,18,6,'#111'); // hijab top
+    px(c,6,8,3,14,'#111'); px(c,23,8,3,14,'#111'); // hijab sides
+    px(c,7,20,18,4,'#111');
+    px(c,11,14,2,2, expr==='shocked'?'#000':'#2b2b2b'); px(c,19,14,2,2,'#2b2b2b'); // eyes
+    if(expr==='happy') px(c,11,18,10,1,'#8a4b2f');
+    else if(expr==='annoyed') px(c,11,19,10,1,'#8a4b2f');
+    else px(c,12,18,8,1,'#8a4b2f');
+    px(c,4,22,24,10,'#c9a876'); // cardigan collar
+  },
+  abdullah:(c,expr)=>{
+    px(c,0,0,32,32,'#dfeeea');
+    px(c,8,7,16,15,'#e7c9a3');
+    px(c,7,2,18,7,'#1a1208'); // hair
+    px(c,6,7,3,8,'#1a1208'); px(c,23,7,3,8,'#1a1208');
+    px(c,11,15,2,2,'#241b10'); px(c,19,15,2,2,'#241b10');
+    px(c,12,19,8,1,'#7a4a2c');
+    px(c,4,22,24,10,'#274a34'); // green jacket
+  },
+  namosh:(c,expr)=>{
+    px(c,0,0,32,32,'#2b3550');
+    px(c,7,10,18,14,'#f4f4f4'); // white face base
+    px(c,7,6,18,10,'#161616'); // black head
+    px(c,5,4,6,6,'#161616'); px(c,21,4,6,6,'#161616'); // ears
+    px(c,10,15,2,2,'#e8c34a'); px(c,20,15,2,2,'#e8c34a'); // eyes
+    px(c,15,19,2,2,'#e08fae'); // nose
+    if(expr==='hiss'){ px(c,10,22,12,3,'#e0e0e0'); }
+  },
+  netra:(c,expr)=>{
+    px(c,0,0,32,32,'#eee3d3');
+    px(c,8,7,16,15,'#c98a5c');
+    px(c,6,2,20,8,'#241611');
+    px(c,6,20,20,10,'#3a2a55');
+    px(c,11,15,2,2,'#181008'); px(c,19,15,2,2,'#181008');
+  },
+  skuttan:(c,expr)=>{
+    px(c,0,0,32,32,'#d8d2e0');
+    px(c,6,10,20,14,'#9aa0ab'); // grey cat face
+    px(c,4,5,7,7,'#9aa0ab'); px(c,21,5,7,7,'#9aa0ab'); // ears
+    px(c,10,16,3,3,'#e6c24a'); px(c,19,16,3,3,'#e6c24a'); // amber eyes
+    px(c,9,16,10,1,'#222'); // little glasses line
+    px(c,14,20,4,1,'#5a4a3a');
+  },
+};
+
+/* ---------------- TOAST ---------------- */
+let toastTimer=null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+/* ---------------- DIALOGUE SYSTEM ---------------- */
+const DialogueUI = {
+  active:false, queue:[], onDone:null,
+  start(lines, onDone){
+    this.queue = lines.slice();
+    this.onDone = onDone||null;
+    this.active = true;
+    document.getElementById('dialogueBox').classList.add('active');
+    this.next();
+  },
+  next(){
+    if(!this.queue.length){ this.close(); return; }
+    const line = this.queue.shift();
+    document.getElementById('speakerName').textContent = line.speaker||'';
+    document.getElementById('dialogueText').textContent = line.text[LANG]||line.text.en;
+    if(line.portrait){
+      document.getElementById('portraitBox').style.display='block';
+      drawPortrait(line.portrait, line.expr||'neutral');
+    } else {
+      document.getElementById('portraitBox').style.display='none';
+    }
+  },
+  close(){
+    this.active=false;
+    document.getElementById('dialogueBox').classList.remove('active');
+    const cb = this.onDone; this.onDone=null;
+    if(cb) cb();
+  }
+};
+document.getElementById('dialogueBox').addEventListener('click', ()=>{ if(DialogueUI.active) DialogueUI.next(); });
+
+/* ---------------- INVENTORY UI ---------------- */
+function toggleInventory(){
+  const p = document.getElementById('invPanel');
+  const willOpen = !p.classList.contains('active');
+  if(willOpen) renderInventory();
+  p.classList.toggle('active');
+}
+function renderInventory(){
+  const grid = document.getElementById('invGrid');
+  grid.innerHTML='';
+  const ICONS = {key:'🗝️', shell:'🐚', fish:'🐟', crystal:'🔷'};
+  Game.inventory.forEach(it=>{
+    const div = document.createElement('div');
+    div.className='inv-item';
+    div.innerHTML = `<div class="ic">${ICONS[it]||'✦'}</div><div>${T('itemName_'+it)}</div>`;
+    grid.appendChild(div);
+  });
+  if(!Game.inventory.length){
+    grid.innerHTML = '<div style="color:var(--text-dim);font-size:11px;">'+(LANG==='sv'?'Väskan är tom.':'Your satchel is empty.')+'</div>';
+  }
+}
+document.getElementById('invBtn').addEventListener('click', toggleInventory);
+document.getElementById('invCloseBtn').addEventListener('click', ()=>document.getElementById('invPanel').classList.remove('active'));
+document.getElementById('menuBtn').addEventListener('click', ()=>{
+  if(confirm(LANG==='sv'?'Spara och gå till titelskärmen?':'Save and return to title screen?')){
+    saveGame(Game.activeSlot||1);
+    location.reload();
+  }
+});
+
+function addItem(id){
+  if(Game.inventory.includes(id)) return;
+  Game.inventory.push(id);
+  AudioSys.SFX.pickup();
+  showToast(T('toast_gotItem').replace('{item}', T('itemName_'+id)));
+}
+
+/* ---------------- TILE MAP HELPERS ---------------- */
+// Tile legend per map defined inline. 0 = grass/floor(walkable), 1 = wall/solid,
+// 2 = water(needs swim), 3 = door/transition, 4 = deep water, 5 = bridge/path
+function makeMap(rows){ return rows.map(r=>r.split('')); }
+
+const TILE_COLORS = {
+  '.': '#6fbf6a', // grass
+  '#': '#3b2d22', // wall/wood
+  '~': '#2f8fd6', // water
+  '=': '#7a5a34', // path
+  'F': '#274a2f', // fence
+  'S': '#d8c37c', // sand
+  'W': '#5b4636', // wood floor
+  'R': '#8a6a4a', // rug
+  'B': '#28324a', // stone dark
+  'C': '#67d6c9', // crystal water
+  'G': '#3a4a24', // grotto floor
+  ' ': '#0d1220',
+};
+const SOLID = new Set(['#','F','B']);
+const WATER = new Set(['~','C']);
+
+/* ---------------- WORLD / SCENES ---------------- */
+const Game = {
+  currentSceneName:'title',
+  player:{x:120,y:120,dir:'down',frame:0,anim:0,swimming:false},
+  camera:{x:0,y:0},
+  flags:{},
+  inventory:[],
+  activeSlot:1,
+  npcs:[],
+  colliders:[],
+  triggers:[],
+  mapGrid:null,
+  mapPixelW:0, mapPixelH:0,
+  companionAbdullah:false,
+  namoshCompanion:false,
+  boss:null,
+};
+
+function setObjective(key){
+  document.getElementById('objText').textContent = T(key);
+}
+
+function clampPlayerToMap(){
+  Game.player.x = Math.max(8, Math.min(Game.mapPixelW-8, Game.player.x));
+  Game.player.y = Math.max(8, Math.min(Game.mapPixelH-8, Game.player.y));
+}
+
+function tileAtPixel(px_,py_){
+  const gx = Math.floor(px_/TILE), gy = Math.floor(py_/TILE);
+  if(!Game.mapGrid || gy<0||gy>=Game.mapGrid.length||gx<0||gx>=Game.mapGrid[0].length) return '#';
+  return Game.mapGrid[gy][gx];
+}
+
+function isSolidAt(px_,py_){
+  const t = tileAtPixel(px_,py_);
+  if(SOLID.has(t)) return true;
+  // custom colliders (objects)
+  for(const c of Game.colliders){
+    if(px_>c.x && px_<c.x+c.w && py_>c.y && py_<c.y+c.h) return true;
+  }
+  return false;
+}
+
+/* ---------------- SCENE DEFINITIONS ---------------- */
+const Scenes = {};
+
+/* --- APARTMENT --- */
+Scenes.apartment = {
+  music:'apartment',
+  build(){
+    const rows = [
+      '################',
+      '#WWWWWWWWWWWWWW#',
+      '#WWRRRRWWWWWWWW#',
+      '#WWRRRRWWWWWWWW#',
+      '#WWWWWWWWWWWWWW#',
+      '#WWWWWWWWWWWWWW#',
+      '#WWWWWWWWWWWWWW#',
+      '#WWWWWWWW###3###',
+      '#WWWWWWWWWWWWWW#',
+      '################',
+    ];
+    Game.mapGrid = makeMap(rows);
+    Game.mapPixelW = rows[0].length*TILE;
+    Game.mapPixelH = rows.length*TILE;
+    Game.player.x = 100; Game.player.y = 80;
+    Game.colliders = [
+      {x:32,y:32,w:16,h:16,name:'bed'},
+      {x:150,y:40,w:24,h:16,name:'toys'},
+      {x:200,y:60,w:16,h:16,name:'souvenirs'},
+    ];
+    Game.npcs = [
+      {id:'namosh', x:90, y:60, w:12,h:10, sprite:'namoshNPC', name:{en:'Namosh',sv:'Namosh'},
+        dialogue:()=>[
+          {speaker:'Namosh', portrait:'namosh', expr:'happy', text:{en:'"Mrrp!" (She rubs against your leg.)', sv:'"Mrrp!" (Hon gnuggar sig mot benet ditt.)'}},
+        ]},
+      {id:'kitten1', x:60, y:130, w:8,h:8, sprite:'kitten', name:{en:'Kitten',sv:'Kattunge'},
+        dialogue:()=>[{speaker:'', portrait:null, text:{en:'A tiny kitten chases its own tail.', sv:'En liten kattunge jagar sin egen svans.'}}]},
+      {id:'kitten2', x:140, y:150, w:8,h:8, sprite:'kitten',
+        dialogue:()=>[{speaker:'', portrait:null, text:{en:'A kitten is asleep in a sock.', sv:'En kattunge sover i en strumpa.'}}]},
+      {id:'kitten3', x:180, y:130, w:8,h:8, sprite:'kitten',
+        dialogue:()=>[{speaker:'', portrait:null, text:{en:'A kitten wobbles toward its food bowl.', sv:'En kattunge vinglar mot sin matskål.'}}]},
+      {id:'kitten4', x:110, y:100, w:8,h:8, sprite:'kitten',
+        dialogue:()=>[{speaker:'', portrait:null, text:{en:'A kitten pounces on a dust mote.', sv:'En kattunge hoppar på ett dammkorn.'}}]},
+    ];
+    Game.triggers = [];
+    Game.flags.introCounted = Game.flags.introCounted || false;
+    setObjective('obj_intro');
+  },
+  interactObject(name){
+    const lines = {
+      bed:[{speaker:'', portrait:null, text:{en:"Aya's bed. Still messy from this morning.", sv:'Ayas säng. Fortfarande orörd sedan morgonen.'}}],
+      toys:[{speaker:'', portrait:null, text:{en:'A pile of half-destroyed cat toys.', sv:'En hög med halvförstörda kattleksaker.'}}],
+      souvenirs:[{speaker:'', portrait:null, text:{en:'Souvenirs from the first search for Namosh — a pressed flower, a cracked compass, a photo.', sv:'Souvenirer från det första sökandet efter Namosh — en pressad blomma, en spräckt kompass, ett foto.'}}],
+    };
+    DialogueUI.start(lines[name]||[]);
+  },
+  onEnter(){ AudioSys.playTheme('apartment'); },
+};
+
+function startKittenCount(){
+  if(Game.flags.introCounted) return;
+  Game.flags.introCounted = true;
+  DialogueUI.start([
+    {speaker:'Aya', portrait:'aya', expr:'neutral', text:{en:'One... two... three... four...', sv:'En... två... tre... fyra...'}},
+    {speaker:'Aya', portrait:'aya', expr:'shocked', text:{en:'Wait. There should be five.', sv:'Vänta. Det ska vara fem.'}},
+    {speaker:'', portrait:null, text:{en:'Thunder cracks outside. Namosh goes rigid, ears flat.', sv:'Åskan mullrar utanför. Namosh blir spänd, öronen platta.'}},
+    {speaker:'Namosh', portrait:'namosh', expr:'hiss', text:{en:'She scratches furiously at the front door.', sv:'Hon river ilsket i ytterdörren.'}},
+    {speaker:'Aya', portrait:'aya', expr:'annoyed', text:{en:'Namosh. NO. We are NOT doing this again.', sv:'Namosh. NEJ. Vi gör INTE det här igen.'}},
+    {speaker:'', portrait:null, text:{en:'Aya opens the door. Tiny wet paw prints lead away into the rain. Namosh bolts after them.', sv:'Aya öppnar dörren. Små våta tassavtryck leder bort i regnet. Namosh rusar efter dem.'}},
+  ], ()=>{
+    setObjective('obj_followTracks');
+    Game.flags.canLeaveApartment = true;
+    showTitleCard();
+  });
+}
+
+function showTitleCard(){
+  const card = document.createElement('div');
+  card.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,6,12,0.85);color:#ffcf5c;z-index:50;pointer-events:none;';
+  card.innerHTML = `<div style="font-size:clamp(20px,5vw,34px);letter-spacing:2px;text-shadow:3px 3px 0 #402a00;">${T('titleMain')}</div><div style="font-size:clamp(12px,3vw,18px);color:#6fe3c9;margin-top:6px;letter-spacing:3px;">${T('titleSub')}</div>`;
+  document.getElementById('gameRoot').appendChild(card);
+  setTimeout(()=>{ card.style.transition='opacity .8s'; card.style.opacity='0'; setTimeout(()=>card.remove(),800); }, 2200);
+}
+
+/* --- ROSEWOOD (town) --- */
+Scenes.rosewood = {
+  music:'rosewood',
+  build(){
+    const rows = [
+      '########################',
+      '#..................FF..#',
+      '#..###.....###.....FF..#',
+      '#..#W#.....#W#.........#',
+      '#..###.....###.....===.#',
+      '#.......==============.#',
+      '#.......=..............#',
+      '#.......=....###.......#',
+      '#.......=....#W#.......#',
+      '#........................'.slice(0,24)+'#',
+      '#..............=.......#',
+      '#..............=.......#',
+      '########3###############',
+    ];
+    Game.mapGrid = makeMap(rows.map(r=>r.padEnd(24,'.').slice(0,24)));
+    Game.mapPixelW = 24*TILE; Game.mapPixelH = rows.length*TILE;
+    if(Game.flags.spawnRosewoodTop){ Game.player.x=130; Game.player.y=32; }
+    else { Game.player.x=130; Game.player.y=Game.mapPixelH-40; }
+    Game.colliders = [];
+    Game.npcs = [
+      {id:'ahmed', x:60,y:70,w:10,h:12, name:{en:'Ahmed',sv:'Ahmed'},
+        dialogue:()=>[{speaker:'Ahmed', portrait:null, text:{en:'A black-and-white blur just knocked over my basket and vanished toward the valley road!', sv:'En svartvit skepnad välte just min korg och försvann mot dalvägen!'}}]},
+      {id:'josef', x:220,y:100,w:10,h:12, name:{en:'Josef',sv:'Josef'},
+        dialogue:()=>[{speaker:'Josef', portrait:null, text:{en:'Cat tracks, heading south into Greenhaven. Angry ones, by the look of the claw marks.', sv:'Kattspår, söderut mot Greenhaven. Arga sådana, att döma av klösmärkena.'}}]},
+    ];
+    Game.triggers = [
+      {x:8*TILE-8, y:12*TILE, w:16, h:16, to:'greenhaven', spawn:'top'},
+    ];
+    setObjective('obj_rosewood');
+  },
+  onEnter(){ AudioSys.playTheme('rosewood'); },
+};
+
+/* --- GREENHAVEN VALLEY --- */
+Scenes.greenhaven = {
+  music:'greenhaven',
+  build(){
+    const rows = [
+      '########################',
+      '#3......FF.......FF....#',
+      '#.......FF.......FF....#',
+      '#..............#',
+      '#..~~~~.................#',
+      '#..~~~~....===..........#',
+      '#..~~~~....=.............#',
+      '#...........=............#',
+      '#...........=....###.....#',
+      '#...........=....#G#.....#',
+      '#..................3.....#',
+      '########################',
+    ];
+    const norm = rows.map(r=>r.padEnd(24,'.').slice(0,24));
+    Game.mapGrid = makeMap(norm);
+    Game.mapPixelW = 24*TILE; Game.mapPixelH = norm.length*TILE;
+    if(Game.flags.spawnGreenhavenBottom){ Game.player.x=19*TILE; Game.player.y=Game.mapPixelH-40; }
+    else { Game.player.x = TILE*2; Game.player.y = TILE*3; }
+    Game.colliders = [];
+    Game.npcs = [
+      {id:'farah', x:100,y:60,w:10,h:12, name:{en:'Farah',sv:'Farah'},
+        dialogue:()=>[{speaker:'Farah', portrait:null, text:{en:"There! By the pond — wet fur on the reeds. She went toward the old grotto gate.", sv:'Där! Vid dammen — vått hår på vassen. Hon gick mot den gamla grottporten.'}}]},
+      {id:'foxHint', x:150,y:150,w:12,h:10, name:{en:'???',sv:'???'},
+        dialogue:()=>[{speaker:'', portrait:null, text:{en:'Paw prints — too big to be a kitten, too fast to be Namosh. Something else is tracking the same trail.', sv:'Tassavtryck — för stora för en kattunge, för snabba för Namosh. Något annat följer samma spår.'}}]},
+    ];
+    Game.triggers = [
+      {x:0, y:8, w:16, h:16, to:'rosewood', spawn:'bottom'},
+      {x:19*TILE, y:10*TILE, w:16,h:16, to:'grotto', spawn:'default'},
+    ];
+    setObjective('obj_greenhaven');
+  },
+  onEnter(){ AudioSys.playTheme('greenhaven'); if(!Game.flags.grottoGateHint){ Game.flags.grottoGateHint=true; setTimeout(()=>{ setObjective('obj_grottoEnter'); },300);} },
+};
+
+/* --- CRYSTALWATER GROTTO (mini dungeon) --- */
+Scenes.grotto = {
+  music:'grotto',
+  build(){
+    const rows = [
+      '####################',
+      '#GGGG..............#',
+      '#GGGG..CCCC.........#',
+      '#GG....CCCC.........#',
+      '#GG....CCCC....####.#',
+      '#..............#GG#.#',
+      '#..LLLL........#GG#.#',
+      '#..LLLL............#',
+      '#..LLLL........B...#',
+      '#...................#',
+      '####################',
+    ];
+    const norm = rows.map(r=>r.padEnd(20,'G').slice(0,20));
+    Game.mapGrid = makeMap(norm);
+    Game.mapPixelW = 20*TILE; Game.mapPixelH = norm.length*TILE;
+    Game.player.x = 3*TILE; Game.player.y = (norm.length-2)*TILE;
+    Game.colliders = [];
+    Game.flags.grottoWaterRaised = Game.flags.grottoWaterRaised || false;
+    Game.npcs = [
+      {id:'lever', x:5*TILE,y:9*TILE,w:10,h:10, name:{en:'Floodgate Lever',sv:'Slussspak'},
+        dialogue:()=>{
+          Game.flags.grottoWaterRaised = !Game.flags.grottoWaterRaised;
+          AudioSys.SFX.splash();
+          rebuildGrottoWater();
+          return [{speaker:'', portrait:null, text: Game.flags.grottoWaterRaised
+            ? {en:'You pull the ancient lever. Water rushes upward with a groan of old stone!', sv:'Du drar i den forntida spaken. Vatten forsar uppåt med ett gnisslande ljud av gammal sten!'}
+            : {en:'The lever clunks back. The water level drains away.', sv:'Spaken klickar tillbaka. Vattennivån sjunker undan.'}}];
+        }},
+    ];
+    if(!Game.flags.grottoBossDefeated){
+      Game.npcs.push({id:'guardian', x:16*TILE,y:7*TILE,w:14,h:14, name:{en:'Grotto Guardian',sv:'Grottväktaren'}, isBoss:true,
+        dialogue:()=>{ startBossFight(); return []; }});
+    }
+    Game.triggers = [
+      {x:0,y:Game.mapPixelH-16, w:16,h:16, to:'greenhaven', spawn:'bottom'},
+    ];
+    if(!Game.flags.namoshFoundTrail){
+      Game.flags.namoshFoundTrail = true;
+      setTimeout(()=>{
+        DialogueUI.start([
+          {speaker:'', portrait:null, text:{en:'Black-and-white fur is caught on a broken vine at the entrance. Namosh was here — and she was not gentle about it.', sv:'Svartvit päls sitter fast på en trasig ranka vid ingången. Namosh var här — och hon var inte varsam.'}},
+          {speaker:'Aya', portrait:'aya', expr:'neutral', text:{en:"Okay. Okay. She's fine. She's just... very committed to this.", sv:'Okej. Okej. Hon mår bra. Hon är bara... väldigt engagerad i det här.'}},
+        ], ()=> setObjective('obj_grottoPuzzle'));
+      },200);
+    }
+  },
+  onEnter(){ AudioSys.playTheme('grotto'); rebuildGrottoWater(); },
+};
+
+function rebuildGrottoWater(){
+  if(!Game.mapGrid) return;
+  for(let y=0;y<Game.mapGrid.length;y++){
+    for(let x=0;x<Game.mapGrid[y].length;x++){
+      const t = Game.mapGrid[y][x];
+      if(t==='L'){ Game.mapGrid[y][x] = Game.flags.grottoWaterRaised ? 'C' : 'G'; }
+    }
+  }
+}
+
+/* ---------------- BOSS: GROTTO GUARDIAN ---------------- */
+function startBossFight(){
+  if(Game.flags.grottoBossDefeated) return;
+  Game.boss = {
+    hp:3, maxHp:3, x:16*TILE, y:7*TILE, w:16,h:16,
+    phase:'intro', timer:0, attackTimer:0, tellAngle:0, invuln:0,
+  };
+  AudioSys.playTheme('battle');
+  DialogueUI.start([
+    {speaker:'', portrait:null, text:{en:'An ancient stone guardian rumbles awake, blocking the passage deeper into the grotto!', sv:'En forntida stenväktare vaknar dånande och blockerar vägen djupare in i grottan!'}},
+  ], ()=>{ setObjective('obj_grottoBoss'); Game.flags.inBossFight = true; });
+}
+
+function updateBoss(dt){
+  const b = Game.boss;
+  if(!b || !Game.flags.inBossFight) return;
+  b.timer += dt;
+  if(b.invuln>0) b.invuln -= dt;
+  // simple attack pattern: guardian pulses a shockwave every ~2.4s, telegraphed
+  b.attackTimer += dt;
+  if(b.attackTimer > 2.4){
+    b.attackTimer = 0;
+    b.attacking = true;
+    b.attackFlash = 0.6;
+  }
+  if(b.attackFlash!==undefined && b.attackFlash>0){
+    b.attackFlash -= dt;
+    if(b.attackFlash<=0){
+      // resolve hit if player close and didn't dodge
+      const dx = Game.player.x-(b.x+8), dy=Game.player.y-(b.y+8);
+      const dist = Math.hypot(dx,dy);
+      if(dist < 34 && !Game.player.dodging){
+        AudioSys.SFX.hit();
+        Game.hp = Math.max(0, (Game.hp??3)-1);
+        updateHearts();
+      }
+    }
+  }
+  // player striking back
+  if(Input.interactPressed){
+    const dx = Game.player.x-(b.x+8), dy=Game.player.y-(b.y+8);
+    if(Math.hypot(dx,dy) < 26 && b.invuln<=0){
+      b.hp -= 1; b.invuln = 0.8;
+      AudioSys.SFX.bossHit();
+      if(b.hp<=0){
+        Game.flags.grottoBossDefeated = true;
+        Game.flags.inBossFight = false;
+        Game.boss = null;
+        Game.npcs = Game.npcs.filter(n=>!n.isBoss);
+        AudioSys.playTheme('grotto');
+        DialogueUI.start([
+          {speaker:'', portrait:null, text:{en:'The guardian cracks and stills, folding back into the wall it once guarded.', sv:'Väktaren spricker och tystnar, viker sig tillbaka in i väggen den en gång vaktade.'}},
+          {speaker:'Aya', portrait:'aya', expr:'happy', text:{en:'Okay. That is definitely not a normal cat problem anymore.', sv:'Okej. Det där är definitivt inte längre ett normalt kattproblem.'}},
+        ], ()=>{
+          addItem('crystal');
+          setObjective('obj_chapterEnd');
+          showChapterEndCard();
+        });
+      }
+    }
+  }
+}
+
+function showChapterEndCard(){
+  const card = document.createElement('div');
+  card.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,6,12,0.92);color:#ffcf5c;z-index:60;text-align:center;padding:20px;pointer-events:auto;';
+  card.innerHTML = `<div style="font-size:clamp(16px,4vw,26px);letter-spacing:2px;">${LANG==='sv'?'SLUT PÅ KAPITEL 1-DEMOT':'END OF CHAPTER 1 DEMO'}</div>
+  <div style="font-size:12px;color:#b9c2d6;max-width:80%;margin-top:14px;line-height:1.6;">${LANG==='sv'
+    ? 'Namosh spår fortsätter djupare — in i Crystalwater Grottos vatten, mot Azure Coast och bortom. Fler regioner, karaktärer och Namoshs sanna uppdrag väntar i nästa uppdatering.'
+    : "Namosh's trail keeps going — deeper into Crystalwater Grotto's waters, toward the Azure Coast and beyond. More regions, characters, and Namosh's true mission are coming in the next build."}</div>
+  <button class="ui-btn" style="margin-top:20px;" id="btnBackToTitleEnd">${LANG==='sv'?'TILL TITELSKÄRMEN':'RETURN TO TITLE'}</button>`;
+  document.getElementById('gameRoot').appendChild(card);
+  card.querySelector('#btnBackToTitleEnd').addEventListener('click', ()=>{ saveGame(Game.activeSlot||1); location.reload(); });
+}
+
+/* ---------------- SCENE TRANSITIONS ---------------- */
+function loadScene(name, spawnHint){
+  Game.currentSceneName = name;
+  if(spawnHint==='top') Game.flags.spawnRosewoodTop = true; else Game.flags.spawnRosewoodTop=false;
+  if(spawnHint==='bottom') Game.flags.spawnGreenhavenBottom = true; else Game.flags.spawnGreenhavenBottom=false;
+  const scene = Scenes[name];
+  scene.build();
+  clampPlayerToMap();
+  if(scene.onEnter) scene.onEnter();
+}
+
+/* ---------------- PLAYER UPDATE ---------------- */
+function updatePlayer(dt){
+  if(DialogueUI.active) return;
+  if(document.getElementById('invPanel').classList.contains('active')) return;
+  if(Game.flags.inBossFight){ /* movement still allowed to dodge */ }
+
+  pollKeyboard();
+  let dx=0, dy=0;
+  if(Input.up) dy-=1; if(Input.down) dy+=1;
+  if(Input.left) dx-=1; if(Input.right) dx+=1;
+  const moving = dx!==0||dy!==0;
+  if(moving){
+    const len = Math.hypot(dx,dy); dx/=len; dy/=len;
+    if(Math.abs(dx)>Math.abs(dy)) Game.player.dir = dx>0?'right':'left';
+    else Game.player.dir = dy>0?'down':'up';
+  }
+  const speed = Game.player.swimming ? 40 : 62;
+  const nx = Game.player.x + dx*speed*dt;
+  const ny = Game.player.y + dy*speed*dt;
+
+  const atNX = tileAtPixel(nx, Game.player.y);
+  const atNY = tileAtPixel(Game.player.x, ny);
+  const canWaterX = WATER.has(atNX) ? true : !SOLID.has(atNX);
+  const canWaterY = WATER.has(atNY) ? true : !SOLID.has(atNY);
+
+  if(canWaterX && !isSolidAt(nx,Game.player.y)) Game.player.x = nx;
+  if(canWaterY && !isSolidAt(Game.player.x,ny)) Game.player.y = ny;
+  clampPlayerToMap();
+
+  const curTile = tileAtPixel(Game.player.x, Game.player.y);
+  const wasSwimming = Game.player.swimming;
+  Game.player.swimming = WATER.has(curTile);
+  if(Game.player.swimming && !wasSwimming) AudioSys.SFX.splash();
+
+  Game.player.dodging = moving; // simple: moving counts as dodge attempt window during boss flash
+
+  if(moving){
+    Game.player.anim += dt*8;
+    if(Math.floor(Game.player.anim)%6===0 && Math.random()<0.15) AudioSys.SFX.step();
+  } else { Game.player.anim = 0; }
+
+  // camera
+  Game.camera.x = Math.max(0, Math.min(Game.mapPixelW-VW, Game.player.x-VW/2));
+  Game.camera.y = Math.max(0, Math.min(Game.mapPixelH-VH, Game.player.y-VH/2));
+
+  // triggers
+  for(const tr of Game.triggers){
+    if(Game.player.x>tr.x && Game.player.x<tr.x+tr.w && Game.player.y>tr.y && Game.player.y<tr.y+tr.h){
+      AudioSys.SFX.door();
+      loadScene(tr.to, tr.spawn);
+      return;
+    }
+  }
+
+  // interact
+  if(Input.interactPressed && !Game.flags.inBossFight){
+    for(const n of Game.npcs){
+      const dist = Math.hypot(Game.player.x-(n.x+ (n.w/2||6)), Game.player.y-(n.y+(n.h/2||6)));
+      if(dist < 22){
+        const lines = n.dialogue();
+        if(lines && lines.length) DialogueUI.start(lines);
+        Input.interactPressed=false;
+        return;
+      }
+    }
+    for(const c of Game.colliders){
+      if(!c.name) continue;
+      const dist = Math.hypot(Game.player.x-(c.x+c.w/2), Game.player.y-(c.y+c.h/2));
+      if(dist < 26 && Scenes[Game.currentSceneName].interactObject){
+        Scenes[Game.currentSceneName].interactObject(c.name);
+        Input.interactPressed=false;
+        return;
+      }
+    }
+    if(Game.currentSceneName==='apartment' && !Game.flags.introCounted){
+      const namoshNPC = Game.npcs.find(n=>n.id==='namosh');
+      if(namoshNPC){
+        const dist = Math.hypot(Game.player.x-namoshNPC.x, Game.player.y-namoshNPC.y);
+        if(dist<40) startKittenCount();
+      }
+    }
+  }
+  Input.interactPressed = false;
+}
+
+/* ---------------- HEARTS / HP ---------------- */
+Game.hp = 3; Game.maxHp = 3;
+function updateHearts(){
+  const wrap = document.getElementById('hearts');
+  wrap.innerHTML='';
+  for(let i=0;i<Game.maxHp;i++){
+    const full = i < Game.hp;
+    const d = document.createElement('div');
+    d.className='heart';
+    d.innerHTML = `<svg viewBox="0 0 16 16" width="18" height="18"><path d="M8 14 L2 8 A4 4 0 0 1 8 3 A4 4 0 0 1 14 8 Z" fill="${full?'#ff5c7a':'#3a2a30'}" stroke="#000" stroke-width="0.6"/></svg>`;
+    wrap.appendChild(d);
+  }
+}
+
+/* ---------------- RENDER ---------------- */
+function tileSrcIndex(t, gx, gy){
+  let idx = TILE_INDEX[t];
+  if(idx===undefined) idx = 15;
+  // animate water (frame index +1) and vary grass texture by position
+  if(t==='.') idx = ((gx*31+gy*17)%5===0) ? 1 : 0;
+  if(t==='~') idx = (Math.floor(Date.now()/500)%2===0) ? 2 : 3;
+  if(t==='C') idx = (Math.floor(Date.now()/500)%2===0) ? 8 : 9;
+  return idx;
+}
+function drawMap(){
+  if(!Game.mapGrid) return;
+  const startCol = Math.floor(Game.camera.x/TILE);
+  const startRow = Math.floor(Game.camera.y/TILE);
+  const cols = Math.ceil(VW/TILE)+2;
+  const rowsN = Math.ceil(VH/TILE)+2;
+  const useSprites = spriteReady();
+  for(let r=0;r<rowsN;r++){
+    for(let c=0;c<cols;c++){
+      const gy = startRow+r, gx = startCol+c;
+      if(gy<0||gx<0||gy>=Game.mapGrid.length||gx>=Game.mapGrid[0].length) continue;
+      const t = Game.mapGrid[gy][gx];
+      const sx = gx*TILE - Game.camera.x, sy = gy*TILE-Game.camera.y;
+      if(useSprites){
+        try{
+          const idx = tileSrcIndex(t,gx,gy);
+          const col = idx%4, row = Math.floor(idx/4);
+          ctx.drawImage(Sprites.tiles, col*TILE_SRC, row*TILE_SRC, TILE_SRC, TILE_SRC, sx, sy, TILE, TILE);
+        }catch(e){ ctx.fillStyle = TILE_COLORS[t] || '#333'; ctx.fillRect(sx,sy,TILE,TILE); }
+      } else {
+        ctx.fillStyle = TILE_COLORS[t] || '#333';
+        ctx.fillRect(sx,sy,TILE,TILE);
+      }
+    }
+  }
+}
+
+function drawColliders(){
+  for(const c of Game.colliders){
+    ctx.fillStyle = '#8a6a4a';
+    ctx.fillRect(c.x-Game.camera.x, c.y-Game.camera.y, c.w, c.h);
+  }
+}
+
+function drawNPC(n){
+  const sx = n.x-Game.camera.x, sy = n.y-Game.camera.y;
+  if(sx<-20||sy<-20||sx>VW+20||sy>VH+20) return;
+  if(n.isBoss){
+    ctx.fillStyle = Game.boss && Game.boss.attackFlash>0 ? '#ff8a5c' : '#5a5a6a';
+    ctx.fillRect(sx-2, sy-2, (n.w||14)+4, (n.h||14)+4);
+    ctx.fillStyle='#2a2a34';
+    ctx.fillRect(sx,sy,n.w||14,n.h||14);
+    return;
+  }
+  if(n.id==='namosh'){
+    if(spriteReady()){
+      try{
+        const t = Date.now()/260;
+        const col = Math.floor(t)%4;
+        ctx.drawImage(Sprites.namosh, col*NAMOSH_FW, DIR_ROW.down*NAMOSH_FH, NAMOSH_FW, NAMOSH_FH,
+          sx-9, sy-10, 18, 12);
+        return;
+      }catch(e){ /* fall through */ }
+    }
+    ctx.fillStyle='#111'; ctx.fillRect(sx,sy,12,8);
+    ctx.fillStyle='#eee'; ctx.fillRect(sx+2,sy+4,8,5);
+    return;
+  }
+  if(n.id && n.id.startsWith('kitten')){
+    if(spriteReady()){
+      try{
+        ctx.drawImage(Sprites.namosh, 0, DIR_ROW.down*NAMOSH_FH, NAMOSH_FW, NAMOSH_FH,
+          sx-6, sy-7, 12, 8);
+        return;
+      }catch(e){ /* fall through */ }
+    }
+    ctx.fillStyle='#222'; ctx.fillRect(sx,sy,8,6);
+    ctx.fillStyle='#eee'; ctx.fillRect(sx+1,sy+3,6,3);
+    return;
+  }
+  if(n.id==='lever'){
+    ctx.fillStyle = Game.flags.grottoWaterRaised? '#6fe3c9':'#8a6a4a';
+    ctx.fillRect(sx,sy,10,10);
+    return;
+  }
+  // generic villager
+  ctx.fillStyle='#c9915a';
+  ctx.fillRect(sx,sy,10,12);
+  ctx.fillStyle='#3a2a1a';
+  ctx.fillRect(sx,sy-4,10,5);
+}
+
+function drawPlayer(){
+  const sx = Game.player.x - Game.camera.x, sy = Game.player.y-Game.camera.y;
+  const bob = Game.player.swimming ? Math.sin(Date.now()/150)*1.5 : 0;
+  // shadow
+  ctx.fillStyle='rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(sx, sy+8, 7,3,0,0,Math.PI*2); ctx.fill();
+
+  if(spriteReady()){
+    try{
+      const row = DIR_ROW[Game.player.dir] ?? 0;
+      const moving = Input.up||Input.down||Input.left||Input.right;
+      const col = moving ? Math.floor(Game.player.anim)%4 : 0;
+      const drawW = 21, drawH = 30;
+      const yOff = Game.player.swimming ? 8+bob : 0;
+      const wetAlpha = Game.player.swimming ? 0.85 : 1;
+      ctx.globalAlpha = wetAlpha;
+      ctx.drawImage(Sprites.aya, col*AYA_FW, row*AYA_FH, AYA_FW, AYA_FH,
+        sx-drawW/2, sy-drawH+6+yOff, drawW, drawH);
+      ctx.globalAlpha = 1;
+      return;
+    }catch(e){ /* fall through to rect fallback below */ }
+  }
+  // fallback rectangles if sprites not yet loaded
+  const yOff = Game.player.swimming ? 4+bob : 0;
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(sx-5, sy-12+yOff, 10, 6);
+  ctx.fillStyle = '#f6d9b8';
+  ctx.fillRect(sx-3, sy-9+yOff, 6, 4);
+  ctx.fillStyle = '#c9a876';
+  ctx.fillRect(sx-6, sy-5+yOff, 12, 8);
+  if(!Game.player.swimming){
+    ctx.fillStyle = '#1f2a4a';
+    ctx.fillRect(sx-5, sy+3, 10, 5);
+  }
+  ctx.fillStyle='#7a2323';
+  ctx.fillRect(sx+3, sy-3, 4,6);
+}
+
+function drawBossAttackTelegraph(){
+  const b = Game.boss;
+  if(!b || !Game.flags.inBossFight) return;
+  const sx = b.x-Game.camera.x+8, sy = b.y-Game.camera.y+8;
+  if(b.attackFlash>0){
+    ctx.strokeStyle = 'rgba(255,90,90,'+Math.min(1,b.attackFlash)+')';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(sx,sy,34,0,Math.PI*2); ctx.stroke();
+  }
+  // boss hp bar
+  ctx.fillStyle='#000'; ctx.fillRect(VW/2-40,10,80,8);
+  ctx.fillStyle='#ff5c5c'; ctx.fillRect(VW/2-38,12, 76*(b.hp/b.maxHp),4);
+}
+
+function render(){
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,VW,VH);
+  if(Game.currentSceneName==='title') return;
+  drawMap();
+  drawColliders();
+  const drawables = Game.npcs.map(n=>({y:n.y, draw:()=>drawNPC(n)}));
+  drawables.push({y:Game.player.y, draw:drawPlayer});
+  drawables.sort((a,b)=>a.y-b.y);
+  drawables.forEach(d=>d.draw());
+  drawBossAttackTelegraph();
+
+  // Namosh scratched trail sparkle (visual guidance in Greenhaven)
+  if(Game.currentSceneName==='greenhaven'){
+    ctx.fillStyle='rgba(255,207,92,0.5)';
+    const t = Date.now()/300;
+    for(let i=0;i<4;i++){
+      const px_=(11+i)*TILE - Game.camera.x, py_=(9)*TILE - Game.camera.y + Math.sin(t+i)*2;
+      ctx.fillRect(px_,py_,3,3);
+    }
+  }
+}
+
+/* ---------------- MAIN LOOP ---------------- */
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(0.05,(now-lastT)/1000);
+  lastT = now;
+  updatePlayer(dt);
+  updateBoss(dt);
+  render();
+  Input.abilityPressed=false; Input.confirmPressed=false;
+  requestAnimationFrame(loop);
+}
+
+/* ---------------- MENU WIRING ---------------- */
+function applyLangTexts(){
+  document.getElementById('txtTitleMain').textContent = T('titleMain');
+  document.getElementById('txtTitleSub').textContent = T('titleSub');
+  document.getElementById('btnNewGame').textContent = T('newGame');
+  document.getElementById('btnContinue').textContent = T('cont');
+  document.getElementById('btnOptions').textContent = T('options');
+  document.getElementById('txtSelectSlot').textContent = T('selectSlot');
+  document.getElementById('btnSlotsBack').textContent = T('back');
+  document.getElementById('txtOptions').textContent = T('options');
+  document.getElementById('optMusicLbl').textContent = T('musicVol');
+  document.getElementById('optSfxLbl').textContent = T('sfxVol');
+  document.getElementById('optControlsLbl').innerHTML = T('controlsInfo');
+  document.getElementById('btnOptionsBack').textContent = T('back');
+  document.getElementById('invTitle').textContent = T('satchel');
+  document.getElementById('invCloseBtn').textContent = T('close');
+  document.getElementById('objLabel').textContent = T('objective');
+}
+document.getElementById('btnLangEN').addEventListener('click', ()=>{ LANG='en'; applyLangTexts(); });
+document.getElementById('btnLangSV').addEventListener('click', ()=>{ LANG='sv'; applyLangTexts(); });
+
+function showScreen(id){
+  document.querySelectorAll('.menu-screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.getElementById('btnOptions').addEventListener('click', ()=>showScreen('screenOptions'));
+document.getElementById('btnOptionsBack').addEventListener('click', ()=>showScreen('screenTitle'));
+document.getElementById('musicVol').addEventListener('input', e=>AudioSys.setMusicVol(e.target.value/100));
+document.getElementById('sfxVol').addEventListener('input', e=>AudioSys.setSfxVol(e.target.value/100));
+
+document.getElementById('btnNewGame').addEventListener('click', ()=>{
+  renderSlotList(true);
+  showScreen('screenSlots');
+});
+document.getElementById('btnContinue').addEventListener('click', ()=>{
+  renderSlotList(false);
+  showScreen('screenSlots');
+});
+document.getElementById('btnSlotsBack').addEventListener('click', ()=>showScreen('screenTitle'));
+
+function renderSlotList(isNew){
+  const wrap = document.getElementById('slotList');
+  wrap.innerHTML='';
+  for(let s=1;s<=3;s++){
+    const summary = slotSummary(s);
+    const div = document.createElement('div');
+    div.className='save-slot';
+    div.innerHTML = `<div class="slot-title">SLOT ${s}</div><div class="slot-info">${summary? (summary.scene+' — '+summary.date) : T('empty')}</div>`;
+    div.addEventListener('click', ()=>{
+      Game.activeSlot = s;
+      AudioSys.ensure();
+      if(isNew || !summary){
+        beginNewGame();
+      } else {
+        beginContinue(s);
+      }
+    });
+    wrap.appendChild(div);
+  }
+}
+
+function beginNewGame(){
+  Game.flags = {}; Game.inventory=[]; Game.hp=3; Game.maxHp=3;
+  document.getElementById('hud').classList.add('active');
+  updateHearts();
+  loadScene('apartment');
+  hideAllMenus();
+}
+function beginContinue(slot){
+  const d = loadGame(slot);
+  if(!d){ beginNewGame(); return; }
+  LANG = d.lang||'en'; applyLangTexts();
+  Game.flags = d.flags||{}; Game.inventory = d.inventory||[];
+  Game.hp = 3; Game.maxHp = 3;
+  document.getElementById('hud').classList.add('active');
+  updateHearts();
+  const scene = d.scene && Scenes[d.scene] ? d.scene : 'apartment';
+  loadScene(scene);
+  if(d.player){ Game.player.x=d.player.x; Game.player.y=d.player.y; }
+  hideAllMenus();
+}
+function hideAllMenus(){
+  document.querySelectorAll('.menu-screen').forEach(s=>s.classList.remove('active'));
+}
+
+/* boot */
+applyLangTexts();
+updateHearts();
+requestAnimationFrame(loop);
+
+// periodic autosave
+setInterval(()=>{
+  if(Game.currentSceneName!=='title' && Game.currentSceneName){
+    saveGame(Game.activeSlot||1);
+  }
+}, 45000);
+
+})();
+</script>
+</body>
+</html>
